@@ -2,20 +2,17 @@ import React, { useState, useEffect } from 'react';
 
 export default function NovaReachApp() {
   const [currentUser, setCurrentUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [page, setPage] = useState('login');
+  const [currentMode, setCurrentMode] = useState('user');
   const [users, setUsers] = useState({
     hudair: {
       id: 'hudair',
       password: 'hudair123!',
       email: 'hudairminai01@gmail.com',
-      whatsappNumber: '03200382386',
       company: 'BE FORWARD Japan',
       messageTemplate: 'Hello [YourName] from BE FORWARD Japan',
       emailTemplate: 'Subject: Japanese Vehicles\n\nHello [DealerName]'
     }
   });
-  const [secretCode] = useState('admin705081');
   const [campaignHistory, setCampaignHistory] = useState({});
   const [dailyMessageCount, setDailyMessageCount] = useState({});
 
@@ -36,15 +33,13 @@ export default function NovaReachApp() {
   const handleLogin = (username, password) => {
     if (!users[username] || users[username].password !== password) return false;
     setCurrentUser(username);
-    setIsAdmin(username === 'hudair');
-    setPage(username === 'hudair' ? 'admin-unlock' : 'dashboard');
+    setCurrentMode('user');
     return true;
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
-    setIsAdmin(false);
-    setPage('login');
+    setCurrentMode('user');
   };
 
   const getDailyUsage = (username) => {
@@ -55,10 +50,12 @@ export default function NovaReachApp() {
   };
 
   if (!currentUser) return <LoginPage users={users} onLogin={handleLogin} />;
-  if (isAdmin && page === 'admin-unlock') return <AdminUnlock secretCode={secretCode} onUnlock={() => setPage('admin')} onBack={handleLogout} />;
-  if (isAdmin && page === 'admin') return <AdminDashboard currentUser={currentUser} users={users} onLogout={handleLogout} campaignHistory={campaignHistory} />;
 
-  return <UserDashboard currentUser={currentUser} user={users[currentUser]} onLogout={handleLogout} dailyUsage={getDailyUsage(currentUser)} campaignHistory={campaignHistory[currentUser] || []} onSaveCampaign={(campaign) => { if (!campaignHistory[currentUser]) campaignHistory[currentUser] = []; setCampaignHistory({ ...campaignHistory, [currentUser]: [...campaignHistory[currentUser], campaign] }); }} />;
+  if (currentMode === 'admin' && currentUser === 'hudair') {
+    return <AdminDashboard currentUser={currentUser} users={users} onLogout={handleLogout} onSwitchMode={() => setCurrentMode('user')} setUsers={setUsers} campaignHistory={campaignHistory} />;
+  }
+
+  return <UserDashboard currentUser={currentUser} user={users[currentUser]} onLogout={handleLogout} onSwitchToAdmin={() => setCurrentMode('admin')} dailyUsage={getDailyUsage(currentUser)} campaignHistory={campaignHistory[currentUser] || []} onSaveCampaign={(campaign) => { if (!campaignHistory[currentUser]) campaignHistory[currentUser] = []; setCampaignHistory({ ...campaignHistory, [currentUser]: [...campaignHistory[currentUser], campaign] }); }} />;
 }
 
 function LoginPage({ users, onLogin }) {
@@ -79,38 +76,32 @@ function LoginPage({ users, onLogin }) {
         <input type="password" placeholder="Password" value={password} onChange={(e) => { setPassword(e.target.value); setError(''); }} style={{ width: '100%', padding: '12px', marginBottom: '15px', border: '2px solid #e0e0e0', borderRadius: '8px', boxSizing: 'border-box', fontSize: '14px' }} />
         {error && <p style={{ color: '#e74c3c', marginBottom: '15px', fontSize: '12px' }}>{error}</p>}
         <button onClick={handleClick} style={{ width: '100%', padding: '12px', background: '#667eea', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' }}>Login</button>
-        <div style={{ borderTop: '1px solid #e0e0e0', marginTop: '30px', paddingTop: '20px', textAlign: 'center' }}>
-          <p style={{ fontSize: '12px', color: '#666', margin: '5px 0' }}>Demo: hudair / hudair123!</p>
-          <p style={{ fontSize: '11px', color: '#999', margin: '5px 0' }}>WhatsApp + Email + CSV</p>
-        </div>
       </div>
     </div>
   );
 }
 
-function AdminUnlock({ secretCode, onUnlock, onBack }) {
-  const [code, setCode] = useState('');
-  const [error, setError] = useState('');
+function AdminDashboard({ currentUser, users, onLogout, onSwitchMode, setUsers, campaignHistory }) {
+  const [showCreate, setShowCreate] = useState(false);
+  const [form, setForm] = useState({ username: '', password: '', email: '', company: 'BE FORWARD Japan' });
 
-  return (
-    <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#667eea', padding: '20px' }}>
-      <div style={{ background: 'white', borderRadius: '15px', padding: '40px', maxWidth: '400px', width: '100%' }}>
-        <h1 style={{ color: '#667eea', marginBottom: '30px', textAlign: 'center' }}>Admin Code</h1>
-        <input type="password" placeholder="Enter secret code" value={code} onChange={(e) => { setCode(e.target.value); setError(''); }} style={{ width: '100%', padding: '12px', marginBottom: '15px', border: '2px solid #e0e0e0', borderRadius: '8px', boxSizing: 'border-box' }} />
-        {error && <p style={{ color: '#e74c3c', fontSize: '12px' }}>{error}</p>}
-        <button onClick={() => { if (code === secretCode) onUnlock(); else setError('Invalid code'); }} style={{ width: '100%', padding: '12px', background: '#667eea', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', marginBottom: '10px', fontWeight: '600' }}>Unlock</button>
-        <button onClick={onBack} style={{ width: '100%', padding: '12px', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Back</button>
-      </div>
-    </div>
-  );
-}
+  const handleCreate = () => {
+    if (!form.username || !form.password || !form.email) { alert('Fill all fields'); return; }
+    if (users[form.username]) { alert('User exists'); return; }
+    setUsers({ ...users, [form.username]: { id: form.username, password: form.password, email: form.email, company: form.company, messageTemplate: 'Hello [YourName]', emailTemplate: 'Subject: Hello\n\nHello [DealerName]' } });
+    alert('User ' + form.username + ' created!');
+    setForm({ username: '', password: '', email: '', company: 'BE FORWARD Japan' });
+    setShowCreate(false);
+  };
 
-function AdminDashboard({ currentUser, users, onLogout, campaignHistory }) {
   return (
     <div style={{ minHeight: '100vh', background: '#f5f7fa', fontFamily: 'Segoe UI, sans-serif' }}>
       <div style={{ background: 'white', padding: '20px 30px', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
         <h1 style={{ color: '#667eea', margin: '0' }}>Admin Panel</h1>
-        <button onClick={onLogout} style={{ padding: '10px 20px', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>Logout</button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={onSwitchMode} style={{ padding: '10px 20px', background: '#667eea', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>Back to Campaigns</button>
+          <button onClick={onLogout} style={{ padding: '10px 20px', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>Logout</button>
+        </div>
       </div>
       <div style={{ padding: '30px', maxWidth: '1000px', margin: '0 auto' }}>
         <div style={{ background: 'white', padding: '30px', borderRadius: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
@@ -124,7 +115,19 @@ function AdminDashboard({ currentUser, users, onLogout, campaignHistory }) {
               <span style={{ color: '#27ae60', fontWeight: '600' }}>OK</span>
             </div>
           ))}
+          <button onClick={() => setShowCreate(!showCreate)} style={{ marginTop: '15px', padding: '10px 20px', background: '#667eea', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: '600' }}>Create User</button>
         </div>
+
+        {showCreate && (
+          <div style={{ background: 'white', padding: '30px', borderRadius: '10px', marginBottom: '20px', border: '2px solid #667eea' }}>
+            <h3 style={{ color: '#667eea', marginBottom: '15px' }}>Create New User</h3>
+            <input type="text" placeholder="Username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} style={{ width: '100%', padding: '10px', marginBottom: '15px', border: '2px solid #e0e0e0', borderRadius: '5px', boxSizing: 'border-box' }} />
+            <input type="password" placeholder="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} style={{ width: '100%', padding: '10px', marginBottom: '15px', border: '2px solid #e0e0e0', borderRadius: '5px', boxSizing: 'border-box' }} />
+            <input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} style={{ width: '100%', padding: '10px', marginBottom: '15px', border: '2px solid #e0e0e0', borderRadius: '5px', boxSizing: 'border-box' }} />
+            <button onClick={handleCreate} style={{ width: '100%', padding: '10px', background: '#27ae60', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: '600' }}>Create</button>
+          </div>
+        )}
+
         <div style={{ background: 'white', padding: '30px', borderRadius: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
           <h2 style={{ color: '#667eea', marginBottom: '20px' }}>Analytics</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
@@ -143,7 +146,7 @@ function AdminDashboard({ currentUser, users, onLogout, campaignHistory }) {
   );
 }
 
-function UserDashboard({ currentUser, user, onLogout, dailyUsage, campaignHistory, onSaveCampaign }) {
+function UserDashboard({ currentUser, user, onLogout, onSwitchToAdmin, dailyUsage, campaignHistory, onSaveCampaign }) {
   const [page, setPage] = useState('home');
   const [campaignType, setCampaignType] = useState('whatsapp');
   const [country, setCountry] = useState('');
@@ -217,8 +220,9 @@ function UserDashboard({ currentUser, user, onLogout, dailyUsage, campaignHistor
     <div style={{ minHeight: '100vh', background: '#f5f7fa', fontFamily: 'Segoe UI, sans-serif' }}>
       <div style={{ background: 'white', padding: '20px 30px', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
         <h1 style={{ color: '#667eea', margin: '0' }}>Nova Reach</h1>
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <span style={{ color: '#333', fontWeight: '600' }}>{currentUser}</span>
+          {currentUser === 'hudair' && <button onClick={onSwitchToAdmin} style={{ padding: '10px 15px', background: '#667eea', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '12px' }}>Admin</button>}
           <button onClick={onLogout} style={{ padding: '10px 20px', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>Logout</button>
         </div>
       </div>
@@ -248,12 +252,6 @@ function UserDashboard({ currentUser, user, onLogout, dailyUsage, campaignHistor
                   <div style={{ fontSize: '14px' }}>Today</div>
                 </div>
               </div>
-              <div style={{ marginTop: '30px', padding: '20px', background: '#f0f4ff', borderLeft: '5px solid #667eea', borderRadius: '5px' }}>
-                <h3 style={{ color: '#667eea', margin: '0 0 10px 0' }}>Features</h3>
-                <p style={{ margin: '5px 0', color: '#555' }}>WhatsApp campaigns</p>
-                <p style={{ margin: '5px 0', color: '#555' }}>Email campaigns</p>
-                <p style={{ margin: '5px 0', color: '#555' }}>CSV upload & export</p>
-              </div>
             </div>
           )}
 
@@ -280,68 +278,4 @@ function UserDashboard({ currentUser, user, onLogout, dailyUsage, campaignHistor
               {dealers.length > 0 && (
                 <div style={{ marginTop: '20px', padding: '15px', background: '#f0f4ff', borderRadius: '5px' }}>
                   <p style={{ color: '#667eea', fontWeight: '600', marginBottom: '15px' }}>Found {dealers.length} dealers</p>
-                  <label style={{ display: 'block', marginBottom: '15px' }}>
-                    <span style={{ fontWeight: '600', display: 'block', marginBottom: '5px' }}>Quantity</span>
-                    <input type="number" min="1" max={Math.min(dealers.length, dailyUsage.remaining)} value={quantity} onChange={(e) => setQuantity(parseInt(e.target.value) || 1)} style={{ width: '100%', padding: '10px', border: '2px solid #e0e0e0', borderRadius: '5px', boxSizing: 'border-box' }} />
-                  </label>
-                  <label style={{ display: 'block', marginBottom: '15px' }}>
-                    <span style={{ fontWeight: '600', display: 'block', marginBottom: '5px' }}>Delay: {delay}s</span>
-                    <input type="range" min="1" max="60" value={delay} onChange={(e) => setDelay(parseInt(e.target.value))} style={{ width: '100%' }} />
-                  </label>
-                  {loading && (
-                    <div style={{ marginBottom: '15px' }}>
-                      <p style={{ color: '#667eea', fontWeight: '600' }}>Sending... {progress}%</p>
-                      <div style={{ background: '#e0e0e0', height: '20px', borderRadius: '10px', overflow: 'hidden' }}>
-                        <div style={{ background: '#667eea', height: '100%', width: progress + '%' }} />
-                      </div>
-                    </div>
-                  )}
-                  <button onClick={handleSend} disabled={loading} style={{ width: '100%', padding: '10px', background: loading ? '#ccc' : '#27ae60', color: 'white', border: 'none', borderRadius: '5px', cursor: loading ? 'default' : 'pointer', fontWeight: '600' }}>Send {quantity}</button>
-                </div>
-              )}
-
-              <div style={{ marginTop: '30px', paddingTop: '30px', borderTop: '1px solid #e0e0e0' }}>
-                <label style={{ display: 'block' }}>
-                  <span style={{ fontWeight: '600', display: 'block', marginBottom: '5px' }}>Upload CSV</span>
-                  <input type="file" accept=".csv" onChange={handleCsvUpload} style={{ width: '100%', padding: '10px', border: '2px solid #e0e0e0', borderRadius: '5px', boxSizing: 'border-box' }} />
-                  <p style={{ color: '#666', fontSize: '12px', marginTop: '5px' }}>Format: Name, Phone, Email, Address</p>
-                </label>
-              </div>
-            </div>
-          )}
-
-          {page === 'history' && (
-            <div>
-              <h2 style={{ color: '#667eea', marginBottom: '20px' }}>Campaign History</h2>
-              {campaignHistory.length === 0 ? (
-                <p style={{ color: '#666' }}>No campaigns yet</p>
-              ) : (
-                campaignHistory.map((c) => (
-                  <div key={c.id} style={{ padding: '15px', background: '#f8f9fa', borderRadius: '5px', marginBottom: '10px' }}>
-                    <h4 style={{ margin: '0 0 5px 0' }}>{c.city}, {c.country} ({c.channel})</h4>
-                    <p style={{ margin: '0', color: '#666', fontSize: '13px' }}>{c.quantity} messages sent</p>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-
-          {page === 'settings' && (
-            <div>
-              <h2 style={{ color: '#667eea', marginBottom: '20px' }}>Settings</h2>
-              <label style={{ display: 'block', marginBottom: '20px' }}>
-                <span style={{ fontWeight: '600', display: 'block', marginBottom: '5px' }}>WhatsApp Template</span>
-                <textarea value={msgTemplate} onChange={(e) => setMsgTemplate(e.target.value)} style={{ width: '100%', minHeight: '100px', padding: '10px', border: '2px solid #e0e0e0', borderRadius: '5px', boxSizing: 'border-box', fontFamily: 'monospace' }} />
-              </label>
-              <label style={{ display: 'block', marginBottom: '20px' }}>
-                <span style={{ fontWeight: '600', display: 'block', marginBottom: '5px' }}>Email Template</span>
-                <textarea value={emailTemplate} onChange={(e) => setEmailTemplate(e.target.value)} style={{ width: '100%', minHeight: '100px', padding: '10px', border: '2px solid #e0e0e0', borderRadius: '5px', boxSizing: 'border-box', fontFamily: 'monospace' }} />
-              </label>
-              <button onClick={() => alert('Saved!')} style={{ padding: '10px 20px', background: '#27ae60', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: '600' }}>Save</button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+              
