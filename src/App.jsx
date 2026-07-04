@@ -80,7 +80,10 @@ export default function NovaReachApp() {
     if (!campaignHistory[username]) campaignHistory[username] = [];
     const today = new Date().toDateString();
     const count = dailyMessageCount[username] || { date: today, count: 0 };
-    if (count.date !== today) count.date = today, count.count = 0;
+    if (count.date !== today) {
+      count.date = today;
+      count.count = 0;
+    }
     count.count += campaign.dealerships.length;
     setCampaignHistory({ ...campaignHistory, [username]: [...(campaignHistory[username] || []), campaign] });
     setDailyMessageCount({ ...dailyMessageCount, [username]: count });
@@ -123,8 +126,15 @@ function LoginPage({ users, onLogin }) {
   const [error, setError] = useState('');
 
   const handleLogin = () => {
-    if (!username || !password) { setError('Please enter username and password'); return; }
-    if (onLogin(username, password)) { setError(''); } else { setError('Invalid credentials'); }
+    if (!username || !password) { 
+      setError('Please enter username and password'); 
+      return; 
+    }
+    if (onLogin(username, password)) { 
+      setError(''); 
+    } else { 
+      setError('Invalid credentials'); 
+    }
   };
 
   return (
@@ -159,7 +169,12 @@ function AdminUnlock({ secretCode, onUnlock, onBack }) {
   const [error, setError] = useState('');
 
   const handleUnlock = () => {
-    if (codeInput === secretCode) { onUnlock(); setError(''); } else { setError('Invalid code'); }
+    if (codeInput === secretCode) { 
+      onUnlock(); 
+      setError(''); 
+    } else { 
+      setError('Invalid code'); 
+    }
   };
 
   return (
@@ -180,8 +195,14 @@ function AdminDashboard({ currentUser, users, onLogout, onCreateUser, campaignHi
   const [form, setForm] = useState({ username: '', password: '', email: '', whatsappNumber: '', company: 'BE FORWARD Japan' });
 
   const handleCreate = () => {
-    if (!form.username || !form.password || !form.email) { alert('Fill all fields'); return; }
-    if (users[form.username]) { alert('User exists'); return; }
+    if (!form.username || !form.password || !form.email) { 
+      alert('Fill all fields'); 
+      return; 
+    }
+    if (users[form.username]) { 
+      alert('User exists'); 
+      return; 
+    }
     onCreateUser({ ...form, messageTemplate: `Hello,\n\nThis is [YourName] from ${form.company}.\n\nWe supply Japanese vehicles directly to dealerships and importers worldwide.\n\nWould you be interested in receiving our latest inventory and pricing?\n\nThank you.`, emailTemplate: `Subject: Available\n\nHello [DealerName],\n\nThis is [YourName] from ${form.company}.\n\nInterested in vehicles?\n\nBest regards,\n[YourName]` });
     alert(`User ${form.username} created!`);
     setForm({ username: '', password: '', email: '', whatsappNumber: '', company: 'BE FORWARD Japan' });
@@ -242,14 +263,23 @@ function UserDashboard({ currentUser, user, users, onLogout, onFindDealerships, 
   const [csvDealers, setCsvDealers] = useState([]);
 
   const handleSearch = () => {
-    if (!country || !city) { alert('Enter country and city'); return; }
+    if (!country || !city) { 
+      alert('Enter country and city'); 
+      return; 
+    }
     const found = onFindDealerships(country, city);
     setDealers(found);
   };
 
   const handleSend = async () => {
-    if (dealers.length === 0) { alert('No dealers found'); return; }
-    if (quantity > dailyUsage.remaining) { alert(`Only ${dailyUsage.remaining} left today`); return; }
+    if (dealers.length === 0) { 
+      alert('No dealers found'); 
+      return; 
+    }
+    if (quantity > dailyUsage.remaining) { 
+      alert(`Only ${dailyUsage.remaining} left today`); 
+      return; 
+    }
 
     setLoading(true);
     const selected = dealers.slice(0, quantity);
@@ -365,97 +395,4 @@ function UserDashboard({ currentUser, user, users, onLogout, onFindDealerships, 
 
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Delay (1-60 sec)</label>
-                  <input type="range" min="1" max="60" value={delay} onChange={(e) => setDelay(parseInt(e.target.value))} style={{ width: '100%' }} />
-                  <p style={{ color: '#666', fontSize: '12px' }}>{delay}s</p>
-                </div>
-
-                {loading && (
-                  <div style={{ marginTop: '15px' }}>
-                    <p style={{ color: '#667eea', fontWeight: '600' }}>Sending... {progress}%</p>
-                    <div style={{ background: '#e0e0e0', height: '20px', borderRadius: '10px', overflow: 'hidden' }}>
-                      <div style={{ background: '#667eea', height: '100%', width: `${progress}%` }} />
-                    </div>
-                  </div>
-                )}
-
-                <button style={{ ...styles.button, marginTop: '15px', background: loading ? '#ccc' : '#27ae60' }} onClick={handleSend} disabled={loading}>Send {quantity} {campaignType === 'whatsapp' ? 'WhatsApp' : 'Email'}</button>
-              </div>
-            )}
-
-            <div style={{ marginTop: '30px', paddingTop: '30px', borderTop: '1px solid #e0e0e0' }}>
-              <label style={styles.label}>📤 Upload CSV</label>
-              <input type="file" accept=".csv" onChange={handleCsvUpload} style={styles.input} />
-              <p style={{ color: '#666', fontSize: '12px' }}>Format: Name, Phone, Email, Address</p>
-              {csvDealers.length > 0 && <p style={{ color: '#667eea', marginTop: '10px' }}>✅ {csvDealers.length} dealers loaded</p>}
-            </div>
-          </div>
-        )}
-
-        {page === 'history' && (
-          <div style={styles.section}>
-            <h2 style={styles.sectionTitle}>History</h2>
-            {campaignHistory.length === 0 ? (
-              <p style={{ color: '#666' }}>No campaigns</p>
-            ) : (
-              campaignHistory.map(c => (
-                <div key={c.id} style={{ ...styles.userCard, marginBottom: '10px' }}>
-                  <div><h4 style={{ margin: '0 0 5px 0' }}>{c.city}, {c.country} ({c.channel})</h4><p style={{ margin: '0', color: '#666', fontSize: '13px' }}>{c.quantity} messages • {new Date(c.timestamp).toLocaleDateString()}</p></div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {page === 'settings' && (
-          <div style={styles.section}>
-            <h2 style={styles.sectionTitle}>Settings</h2>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>WhatsApp Template</label>
-              <textarea value={msgTemplate} onChange={(e) => setMsgTemplate(e.target.value)} style={{ ...styles.input, minHeight: '100px' }} />
-            </div>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Email Template</label>
-              <textarea value={emailTemplate} onChange={(e) => setEmailTemplate(e.target.value)} style={{ ...styles.input, minHeight: '100px' }} />
-            </div>
-            <button style={styles.submitButton} onClick={() => { setUsers(prev => ({ ...prev, [currentUser]: { ...prev[currentUser], messageTemplate: msgTemplate, emailTemplate } })); alert('Saved!'); }}>Save</button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-const styles = {
-  container: { minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', fontFamily: "'Segoe UI', sans-serif", padding: '20px' },
-  loginBox: { background: 'white', borderRadius: '15px', padding: '50px 40px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', maxWidth: '420px', width: '100%' },
-  formContainer: { marginBottom: '30px' },
-  inputGroup: { marginBottom: '20px' },
-  label: { display: 'block', color: '#333', fontSize: '14px', fontWeight: '600', marginBottom: '8px' },
-  input: { width: '100%', padding: '12px 15px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', marginBottom: '10px' },
-  button: { width: '100%', padding: '12px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '600', cursor: 'pointer', marginBottom: '10px' },
-  error: { color: '#e74c3c', fontSize: '14px', marginBottom: '15px', padding: '10px', background: '#fff5f5', borderRadius: '5px' },
-  footer: { borderTop: '1px solid #e0e0e0', paddingTop: '20px', textAlign: 'center' },
-  footerText: { color: '#666', fontSize: '12px', margin: '0 0 10px 0' },
-  credentials: { color: '#667eea', fontSize: '12px', margin: '5px 0', fontFamily: 'monospace' },
-  appContainer: { minHeight: '100vh', background: '#f5f7fa', fontFamily: "'Segoe UI', sans-serif" },
-  header: { background: 'white', padding: '20px 30px', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' },
-  logoutButton: { padding: '10px 20px', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' },
-  navTabs: { background: 'white', padding: '15px 30px', display: 'flex', gap: '10px', borderBottom: '1px solid #e0e0e0', overflowX: 'auto' },
-  navTab: { padding: '10px 20px', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', whiteSpace: 'nowrap' },
-  content: { padding: '30px', maxWidth: '1200px', margin: '0 auto' },
-  section: { background: 'white', borderRadius: '10px', padding: '30px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', marginBottom: '30px' },
-  sectionTitle: { color: '#667eea', fontSize: '20px', margin: '0 0 20px 0' },
-  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' },
-  statCard: { background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '20px', borderRadius: '8px', textAlign: 'center', color: 'white' },
-  statNumber: { fontSize: '32px', fontWeight: 'bold', margin: '0 0 10px 0' },
-  statLabel: { fontSize: '14px' },
-  usersList: { display: 'grid', gap: '15px', marginBottom: '20px' },
-  userCard: { background: '#f8f9fa', padding: '15px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  userName: { color: '#333', margin: '0 0 5px 0', fontSize: '16px' },
-  userDetail: { color: '#666', margin: '3px 0', fontSize: '13px' },
-  statusActive: { color: '#27ae60', fontSize: '14px', fontWeight: '600' },
-  createButton: { padding: '10px 20px', background: '#667eea', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' },
-  createUserSection: { background: 'white', borderRadius: '10px', padding: '30px', marginBottom: '30px', border: '2px solid #667eea' },
-  formGroup: { marginBottom: '15px' },
-  submitButton: { padding: '10px 20px', background: '#27ae60', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }
-};
+                  <input type="range" min="1" 
