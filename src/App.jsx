@@ -260,7 +260,6 @@ function UserDashboard({ currentUser, user, users, onLogout, onFindDealerships, 
   const [loading, setLoading] = useState(false);
   const [msgTemplate, setMsgTemplate] = useState(user.messageTemplate);
   const [emailTemplate, setEmailTemplate] = useState(user.emailTemplate);
-  const [csvDealers, setCsvDealers] = useState([]);
 
   const handleSearch = () => {
     if (!country || !city) { 
@@ -325,7 +324,6 @@ function UserDashboard({ currentUser, user, users, onLogout, onFindDealerships, 
         const vals = lines[i].split(',');
         dealers.push({ id: i, name: vals[0]?.trim() || '', phone: vals[1]?.trim() || '', email: vals[2]?.trim() || '', address: vals[3]?.trim() || '' });
       }
-      setCsvDealers(dealers);
       setDealers(dealers);
       alert(`CSV loaded: ${dealers.length} dealers`);
     };
@@ -394,5 +392,5 @@ function UserDashboard({ currentUser, user, users, onLogout, onFindDealerships, 
                 </div>
 
                 <div style={styles.formGroup}>
-                  <label style={styles.label}>Delay (1-60 sec)</label>
-                  <input type="range" min="1" 
+                  <label style={styles.label}>Delay (seconds)</label>
+                  <input type="range" min="1" max="60" value={delay} onChange={(e) => setDelay(parseInt(e.target.value))} style={
